@@ -1,0 +1,17 @@
+# environment
+.env
+.venv
+venv/
+env/
+__pycache__/
+*.pyc
+
+# dependencies
+node_modules/
+
+# build
+dist/
+dist-ssr/
+build/
+*.pdf
+*.docx
