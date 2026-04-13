@@ -10,7 +10,8 @@ import uvicorn
 import PyPDF2
 import docx
 import spacy
-from sentence_transformers import SentenceTransformer, util
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,10 +26,6 @@ except OSError:
     import spacy.cli
     spacy.cli.download("en_core_web_sm")
     nlp = spacy.load("en_core_web_sm")
-
-# ── Sentence Transformer Model ──────────────────────────────────────────────
-model = SentenceTransformer("all-MiniLM-L6-v2")
-
 
 # ── Pydantic Models ─────────────────────────────────────────────────────────
 class MatchResult(BaseModel):
@@ -113,10 +110,13 @@ def extract_entities(text: str) -> dict:
 
 # ── Semantic Similarity ─────────────────────────────────────────────────────
 def compute_similarity(text1: str, text2: str) -> float:
-    e1 = model.encode(text1, convert_to_tensor=True)
-    e2 = model.encode(text2, convert_to_tensor=True)
-    score = util.cos_sim(e1, e2)[0][0].item()
-    return round(max(0, score * 100), 2)
+    try:
+        vectorizer = TfidfVectorizer(stop_words='english')
+        tfidf_matrix = vectorizer.fit_transform([text1, text2])
+        score = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0]
+        return round(max(0, float(score) * 100), 2)
+    except Exception:
+        return 0.0
 
 
 # ── FastAPI App ──────────────────────────────────────────────────────────────
